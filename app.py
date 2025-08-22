@@ -20,13 +20,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Login function
-USERNAMES = ["Manuel", "FU"]
-PASSWORDS = ["1234", "urtubey"]
+CREDENTIALS = {"franco": "reishi", "admin": "admin"}
 
 def login(username, password):
-    if username in USERNAMES and password == PASSWORDS[USERNAMES.index(username)]:
-        return True
-    return False
+    return CREDENTIALS.get(username) == password
 
 def main():
     # Initialize cookies manager
