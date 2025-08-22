@@ -11,7 +11,7 @@ def fetch_data():
     emitidos_excel = emitidos.copy()
     for column in ['Neto', 'IVA']:
         emitidos[column] = emitidos[column].apply(format_currency)
-    emitidos_por_empresa = emitidos_excel.groupby(['Razon Social', 'Empresa']).agg({
+    emitidos_por_empresa = emitidos_excel.groupby(['Empresa']).agg({
         'Neto': 'sum', 
         'IVA': 'sum', 
     }).reset_index()
@@ -24,7 +24,7 @@ def fetch_data():
     recibidos_excel = recibidos.copy()
     for column in ['Neto', 'IVA']:
         recibidos[column] = recibidos[column].apply(format_currency)
-    recibidos_por_empresa = recibidos_excel.groupby(['Razon Social', 'Empresa']).agg({
+    recibidos_por_empresa = recibidos_excel.groupby('Empresa').agg({
         'Neto': 'sum', 
         'IVA': 'sum', 
     }).reset_index()
@@ -35,15 +35,9 @@ def fetch_data():
 
     resumen_contable = pd.read_csv('data/resumen_contable_mes_vencido.csv')
     resumen_contable_excel = resumen_contable.copy()
-    for column in resumen_contable.columns:
-        if column != 'Sociedad':
-            resumen_contable[column] = resumen_contable[column].apply(format_currency)
-    resumen_contable_total = pd.read_csv('data/resumen_contable_total.csv')
-    for column in resumen_contable_total.columns:
-        if column != 'Sociedad':
-            resumen_contable_total[column] = resumen_contable_total[column].apply(format_currency)
+
     return (
-        emitidos, recibidos, resumen_contable, resumen_contable_total, emitidos_por_empresa, recibidos_por_empresa,
+        emitidos, recibidos, resumen_contable, emitidos_por_empresa, recibidos_por_empresa,
         emitidos_excel, recibidos_excel, resumen_contable_excel, emitidos_por_empresa_excel, recibidos_por_empresa_excel
     )
 
@@ -52,30 +46,6 @@ def filter_by_razon_social(df, razon_social):
         return df[df['Razon Social'] == razon_social].drop('Razon Social', axis=1)
     if 'Sociedad' in df.columns:
         return df[df['Sociedad'] == razon_social].drop('Sociedad', axis=1)
-    return df
-
-def filter_restricted_data(df, username):
-    """ATENCION: Se define la funcion una vez por pagina de la app"""
-    if username != "FU":
-        return df
-    
-    # Companies to filter out for FU
-    restricted_companies = [
-        "BA Comex", 
-        "De la Arena Coll Manuel", 
-        "Winehaus", 
-        "Nerococina", 
-        "De la Arena Martin", 
-        "Hermosalta SRL", 
-        "Leoni Maria Jose", 
-        "Valenzuela Ricardo Patricio"
-    ]
-    
-    if 'Razon Social' in df.columns:
-        return df[~df['Razon Social'].isin(restricted_companies)]
-    elif 'Sociedad' in df.columns:
-        return df[~df['Sociedad'].isin(restricted_companies)]
-    
     return df
 
 def to_excel_multiple_sheets(resumen_contable_excel, emitidos_excel, recibidos_excel, emitidos_por_empresa_excel, recibidos_por_empresa_excel):
@@ -94,34 +64,17 @@ def to_excel_multiple_sheets(resumen_contable_excel, emitidos_excel, recibidos_e
     processed_data = output.getvalue()
     return processed_data
 
-def show_page(username):
+def show_page():
     st.title("Resumen Contable - Mes Vencido (Julio 2025)")
     #st.info("En construcción")
     # Get both formatted data (for display) and raw data (for Excel)
     (
-        emitidos, recibidos, resumen_contable, resumen_contable_total, emitidos_por_empresa, recibidos_por_empresa,
+        emitidos, recibidos, resumen_contable, emitidos_por_empresa, recibidos_por_empresa,
         emitidos_excel, recibidos_excel, resumen_contable_excel, emitidos_por_empresa_excel, recibidos_por_empresa_excel
     ) = fetch_data()
-    
-    # Filter data based on user permissions
-    emitidos = filter_restricted_data(emitidos, username)
-    recibidos = filter_restricted_data(recibidos, username)
-    emitidos_por_empresa = filter_restricted_data(emitidos_por_empresa, username)
-    recibidos_por_empresa = filter_restricted_data(recibidos_por_empresa, username)
-    resumen_contable = filter_restricted_data(resumen_contable, username)
-    
-    # Also filter the Excel data
-    emitidos_excel = filter_restricted_data(emitidos_excel, username)
-    recibidos_excel = filter_restricted_data(recibidos_excel, username)
-    emitidos_por_empresa_excel = filter_restricted_data(emitidos_por_empresa_excel, username)
-    recibidos_por_empresa_excel = filter_restricted_data(recibidos_por_empresa_excel, username)
-    resumen_contable_excel = filter_restricted_data(resumen_contable_excel, username)
-    
 
     col_title, col_download = st.columns([3, 1])
-    
-    with st.container():
-        st.dataframe(resumen_contable_total, use_container_width=True, hide_index=True)
+
     
     st.header("Detalle por Sociedad")
     with st.container():
