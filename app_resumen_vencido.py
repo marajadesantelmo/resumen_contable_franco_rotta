@@ -125,11 +125,6 @@ def show_page():
         st.subheader("Detalle Comprobantes Recibidos")
         with st.container():
             st.dataframe(recibidos, use_container_width=True, hide_index=True)
-    with col1:
-        st.subheader("Total mensual Emitidos por Cliente")
-        with st.container():
-            st.dataframe(emitidos_por_empresa, use_container_width=True, hide_index=True)
-
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Detalle Comprobantes Emitidos")
