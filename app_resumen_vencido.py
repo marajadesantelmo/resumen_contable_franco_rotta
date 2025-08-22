@@ -90,7 +90,7 @@ def show_page():
     with col2:
         # Now that razon_social is defined, we can add the download button
         with col_download:
-            st.image("data/logo.png", width=120)
+            st.image("data/logo.png", width=160)
             # No filtering, just use the full dataframes
             st.download_button(
                 label="Descargar informe en Excel",
