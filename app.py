@@ -73,7 +73,7 @@ def main():
         
         # Display selected page
         if current_page == "Resumen Mes Vencido":
-            app_resumen_vencido.show_page(st.session_state.username)
+            app_resumen_vencido.show_page()
         elif current_page == "Mes Corriente":
             app_mes_corriente.show_page(st.session_state.username)
         elif current_page == "Histórico":
