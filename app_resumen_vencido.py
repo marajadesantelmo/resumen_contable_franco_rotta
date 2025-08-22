@@ -61,7 +61,7 @@ def to_excel_multiple_sheets(resumen_contable_excel, emitidos_excel, recibidos_e
 
 def show_page():
     st.title("Resumen Contable - Mes Vencido (Julio 2025)")
-    #st.info("En construcción")
+    st.info("En construcción")
     # Get both formatted data (for display) and raw data (for Excel)
     (
         emitidos, recibidos, resumen_contable, emitidos_por_empresa, recibidos_por_empresa,
@@ -72,7 +72,7 @@ def show_page():
 
     
     # Use st.metric for a more visually appealing summary
-    st.subheader("Resumen Contable")
+    st.subheader("Resumen Contable - Mes Vencido (Julio 2025)")
     resumen_row = resumen_contable.iloc[0]
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Ventas Netas", resumen_row["Ventas Netas"])
