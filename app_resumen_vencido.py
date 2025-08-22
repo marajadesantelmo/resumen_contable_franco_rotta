@@ -60,7 +60,6 @@ def to_excel_multiple_sheets(resumen_contable_excel, emitidos_excel, recibidos_e
     return processed_data
 
 def show_page():
-    st.title("Resumen Contable - Mes Vencido (Julio 2025)")
     st.info("En construcción")
     # Get both formatted data (for display) and raw data (for Excel)
     (
@@ -68,18 +67,18 @@ def show_page():
         emitidos_excel, recibidos_excel, resumen_contable_excel, emitidos_por_empresa_excel, recibidos_por_empresa_excel
     ) = fetch_data()
 
-    col_title, col_download = st.columns([3, 1])
+    col_metrics, col_download = st.columns([7, 1])
 
-    
-    # Use st.metric for a more visually appealing summary
-    st.subheader("Resumen Contable - Mes Vencido (Julio 2025)")
-    resumen_row = resumen_contable.iloc[0]
-    col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric("Ventas Netas", resumen_row["Ventas Netas"])
-    col2.metric("Compras Netas", resumen_row["Compras Netas"])
-    col3.metric("IVA Ventas", resumen_row["IVA Ventas"])
-    col4.metric("IVA Compras", resumen_row["IVA Compras"])
-    col5.metric("Saldo IVA", resumen_row["Saldo IVA"])
+    with col_metrics:
+        # Use st.metric for a more visually appealing summary
+        st.subheader("Resumen Contable - Mes Vencido (Julio 2025)")
+        resumen_row = resumen_contable.iloc[0]
+        col1, col2, col3, col4, col5 = st.columns(5)
+        col1.metric("Ventas Netas", resumen_row["Ventas Netas"])
+        col2.metric("Compras Netas", resumen_row["Compras Netas"])
+        col3.metric("IVA Ventas", resumen_row["IVA Ventas"])
+        col4.metric("IVA Compras", resumen_row["IVA Compras"])
+        col5.metric("Saldo IVA", resumen_row["Saldo IVA"])
 
     st.divider()
 
