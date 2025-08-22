@@ -34,7 +34,9 @@ def fetch_data():
         recibidos_por_empresa[column] = recibidos_por_empresa[column].apply(format_currency)
 
     resumen_contable = pd.read_csv('data/resumen_contable_mes_vencido.csv')
-    resumen_contable_excel = resumen_contable.copy()
+    for column in ['Ventas Netas', 'Compras Netas', 'IVA Ventas', 'IVA Compras', 'Saldo IVA']:
+        resumen_contable[column] = resumen_contable[column].apply(format_currency)
+    resumen_contable_excel = pd.read_csv('data/resumen_contable_mes_vencido.csv')
 
     return (
         emitidos, recibidos, resumen_contable, emitidos_por_empresa, recibidos_por_empresa,
@@ -69,9 +71,15 @@ def show_page():
     col_title, col_download = st.columns([3, 1])
 
     
-    st.header("Detalle por Sociedad")
-    with st.container():
-        st.dataframe(resumen_contable, use_container_width=True, hide_index=True, height=460)
+    # Use st.metric for a more visually appealing summary
+    st.subheader("Resumen Contable")
+    resumen_row = resumen_contable.iloc[0]
+    col1, col2, col3, col4, col5 = st.columns(5)
+    col1.metric("Ventas Netas", resumen_row["Ventas Netas"])
+    col2.metric("Compras Netas", resumen_row["Compras Netas"])
+    col3.metric("IVA Ventas", resumen_row["IVA Ventas"])
+    col4.metric("IVA Compras", resumen_row["IVA Compras"])
+    col5.metric("Saldo IVA", resumen_row["Saldo IVA"])
 
     st.divider()
 
