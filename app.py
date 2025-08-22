@@ -75,10 +75,10 @@ def main():
         if current_page == "Resumen Mes Vencido":
             app_resumen_vencido.show_page()
         elif current_page == "Mes Corriente":
-            app_mes_corriente.show_page(st.session_state.username)
+            app_mes_corriente.show_page()
         elif current_page == "Histórico":
-            app_historico.show_page(st.session_state.username)
-            
+            app_historico.show_page()
+
         # Add logout button
         if st.sidebar.button("Cerrar sesión"):
             cookies["logged_in"] = "False"

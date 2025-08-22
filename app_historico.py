@@ -7,31 +7,6 @@ def format_currency(x):
     """Format number as Argentine peso currency"""
     return f"${x:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".") if x >= 0 else f"(${abs(x):,.0f})".replace(",", "X").replace(".", ",").replace("X", ".")
 
-def filter_restricted_data(df, username):
-    """ATENCION: Se define la funcion una vez por pagina de la app"""
-    if username != "FU":
-        return df
-    
-    restricted_companies = [
-        "BA Comex", 
-        "De la Arena Coll Manuel", 
-        "Winehaus", 
-        "Nerococina", 
-        "De la Arena Martin", 
-        "Hermosalta SRL", 
-        "Leoni Maria Jose", 
-        "Valenzuela Ricardo Patricio"
-    ]
-    
-    if 'razon_social' in df.columns:
-        return df[~df['razon_social'].isin(restricted_companies)]
-    if 'Razon Social' in df.columns:
-        return df[~df['Razon Social'].isin(restricted_companies)]
-    elif 'Sociedad' in df.columns:
-        return df[~df['Sociedad'].isin(restricted_companies)]
-    
-    return df
-
 def download_excel(dataframes, sheet_names):
     """Generate an Excel file from multiple dataframes."""
     output = BytesIO()
@@ -40,34 +15,18 @@ def download_excel(dataframes, sheet_names):
             df.to_excel(writer, index=False, sheet_name=sheet_name)
     return output.getvalue()
 
-def fetch_data(username):
+def fetch_data():
     comprobantes_historicos = pd.read_csv('data/comprobantes_historicos.csv')
-    comprobantes_historicos = filter_restricted_data(comprobantes_historicos, username)
-
     emitidos_historicos = pd.read_csv('data/emitidos_historico.csv')
-    emitidos_historicos = filter_restricted_data(emitidos_historicos, username)
-
     recibidos_historicos = pd.read_csv('data/recibidos_historico.csv')
-    recibidos_historicos = filter_restricted_data(recibidos_historicos, username)
-
     ventas_por_empresa_cliente = pd.read_csv('data/ventas_historico_cliente.csv')
-    ventas_por_empresa_cliente = filter_restricted_data(ventas_por_empresa_cliente, username)
-
     compras_por_empresa_proveedor = pd.read_csv('data/compras_historico_proveedor.csv')
-    compras_por_empresa_proveedor = filter_restricted_data(compras_por_empresa_proveedor, username)
     return (comprobantes_historicos, emitidos_historicos, recibidos_historicos, ventas_por_empresa_cliente, compras_por_empresa_proveedor)
 
-def show_page(username):
-    comprobantes_historicos, emitidos_historicos, recibidos_historicos, ventas_por_empresa_cliente, compras_por_empresa_proveedor = fetch_data(username)
+def show_page():
+    comprobantes_historicos, emitidos_historicos, recibidos_historicos, ventas_por_empresa_cliente, compras_por_empresa_proveedor = fetch_data()
     st.title("Resumen Contable - Histórico")
     st.info("Datos Históricos en base a Comprobantes de ARCA")
-
-    # Selectbox for "Razón Social" outside the tabs
-    selected_razon_social = st.selectbox(
-        "Seleccione Razón Social",
-        comprobantes_historicos['Razon Social'].unique(),
-        key="razon_social_selectbox"
-    )
 
     tab1, tab2, tab3, tab4 = st.tabs(["Ventas y Compras", "IVA", "Clientes", "Proveedores"])
     with tab1:
@@ -75,27 +34,26 @@ def show_page(username):
         with tab1_col1:
             st.subheader("Ventas y Compras")
             filtered_data = comprobantes_historicos[
-                (comprobantes_historicos['Razon Social'] == selected_razon_social) &
-                (comprobantes_historicos['Variable'].isin(['Neto Ventas', 'Neto Compras']))
+                comprobantes_historicos['Variable'].isin(['Neto Ventas', 'Neto Compras'])
             ]
             if not filtered_data.empty:
                 st.bar_chart(filtered_data, x="Mes", y="Monto", color="Variable", stack=False)
             else:
-                st.warning("No hay datos disponibles para la Razón Social seleccionada.")
+                st.warning("No hay datos disponibles.")
         with tab1_col2:
             # Pivot the data to have columns Mes, Neto Ventas, and Neto Compras
             pivoted_data_ventas_compras = filtered_data.pivot(index="Mes", columns="Variable", values="Monto").reset_index()
-            pivoted_data_ventas_compras = pivoted_data_ventas_compras[["Mes", "Neto Ventas", "Neto Compras"]]
-            pivoted_data_ventas_compras['Dif.'] = pivoted_data_ventas_compras['Neto Ventas'] - pivoted_data_ventas_compras['Neto Compras']
-            for column in [ "Neto Ventas", "Neto Compras", 'Dif.']:
+            if "Neto Ventas" in pivoted_data_ventas_compras.columns and "Neto Compras" in pivoted_data_ventas_compras.columns:
+                pivoted_data_ventas_compras['Dif.'] = pivoted_data_ventas_compras['Neto Ventas'] - pivoted_data_ventas_compras['Neto Compras']
+            for column in [c for c in ["Neto Ventas", "Neto Compras", 'Dif.'] if c in pivoted_data_ventas_compras.columns]:
                 pivoted_data_ventas_compras[column] = pivoted_data_ventas_compras[column].apply(format_currency)
             pivoted_data_ventas_compras.sort_values(by="Mes", ascending=False, inplace=True)
             st.dataframe(pivoted_data_ventas_compras, hide_index=True)
 
         # --- NEW FILTERS FOR RECIBIDOS/EMITIDOS ---
         # Get unique Mes and Empresa for recibidos_historicos and emitidos_historicos
-        recibidos_df = recibidos_historicos[recibidos_historicos['Razon Social'] == selected_razon_social]
-        emitidos_df = emitidos_historicos[emitidos_historicos['Razon Social'] == selected_razon_social]
+        recibidos_df = recibidos_historicos
+        emitidos_df = emitidos_historicos
 
         # MES filter (descending)
         all_meses = sorted(
@@ -125,12 +83,12 @@ def show_page(username):
             selected_mes = st.selectbox("Filtrar por Mes", all_meses, key="mes_filter_tab1")
         
         st.dataframe(
-            filter_df(recibidos_df).drop(columns=["Razon Social", "Mes"]),
+            filter_df(recibidos_df).drop(columns=["Mes"]),
             hide_index=True
         )
         st.subheader("Detalle Emitidos")
         st.dataframe(
-            filter_df(emitidos_df).drop(columns=["Razon Social", "Mes"]),
+            filter_df(emitidos_df).drop(columns=["Mes"]),
             hide_index=True
         )
 
@@ -139,27 +97,23 @@ def show_page(username):
         with tab2_col1:
             st.subheader("IVA")
             filtered_data = comprobantes_historicos[
-                (comprobantes_historicos['Razon Social'] == selected_razon_social) &
-                (comprobantes_historicos['Variable'].isin(['IVA Ventas', 'IVA Compras', 'Saldo IVA']))
+                comprobantes_historicos['Variable'].isin(['IVA Ventas', 'IVA Compras', 'Saldo IVA'])
             ]
             if not filtered_data.empty:         
                  st.bar_chart(filtered_data, x="Mes", y="Monto", color="Variable", stack=False)
             else:
-                st.warning("No hay datos disponibles para la Razón Social seleccionada.")
+                st.warning("No hay datos disponibles.")
         with tab2_col2:
             # Pivot the data to have columns Mes, IVA Ventas, IVA Compras, and Saldo IVA
             pivoted_data = filtered_data.pivot(index="Mes", columns="Variable", values="Monto").reset_index()
-            pivoted_data = pivoted_data[["Mes", "IVA Ventas", "IVA Compras", "Saldo IVA"]]
-            for column in [ "IVA Ventas", "IVA Compras", "Saldo IVA"]:
+            for column in [c for c in ["IVA Ventas", "IVA Compras", "Saldo IVA"] if c in pivoted_data.columns]:
                 pivoted_data[column] = pivoted_data[column].apply(format_currency)
             pivoted_data.sort_values(by="Mes", ascending=False, inplace=True)
             st.dataframe(pivoted_data, hide_index=True)
 
     with tab3:
         st.subheader("Clientes Mensual")
-        filtered_data = ventas_por_empresa_cliente[
-            ventas_por_empresa_cliente['Razon Social'] == selected_razon_social
-        ]
+        filtered_data = ventas_por_empresa_cliente
         pivoted_data_clientes_tidy = filtered_data.groupby(["Empresa", "Mes"]).agg({"Neto": "sum"}).reset_index()
         pivoted_data_clientes = pivoted_data_clientes_tidy.pivot(index="Empresa", columns="Mes", values="Neto").reset_index()
         pivoted_data_clientes.fillna(0, inplace=True)  # Ensure no NaN values
@@ -179,17 +133,13 @@ def show_page(username):
                 top_10_clients_tidy = top_10_clients_tidy[top_10_clients_tidy["Mes"] != "Total"]
                 st.bar_chart(top_10_clients_tidy, x="Mes", y="Neto", color="Empresa", stack=False)
         else:
-            st.warning("No hay datos disponibles para la Razón Social seleccionada.")
+            st.warning("No hay datos disponibles.")
         st.subheader("Detalle Emitidos")
-        st.dataframe(emitidos_historicos[emitidos_historicos['Razon Social'] == selected_razon_social].drop(columns=["Razon Social"]), 
-                     hide_index=True)        
-        # Pivot the data to have columns Mes and Clientes
+        st.dataframe(emitidos_historicos.drop(columns=["Mes"]), hide_index=True)        
 
     with tab4:
         st.subheader("Proveedores")
-        filtered_data = compras_por_empresa_proveedor[
-            compras_por_empresa_proveedor['Razon Social'] == selected_razon_social
-        ]
+        filtered_data = compras_por_empresa_proveedor
         pivoted_data_proveedores_tidy = filtered_data.groupby(["Empresa", "Mes"]).agg({"Neto": "sum"}).reset_index()
         pivoted_data_proveedores = pivoted_data_proveedores_tidy.pivot(index="Empresa", columns="Mes", values="Neto").reset_index()
         pivoted_data_proveedores.fillna(0, inplace=True)
@@ -209,31 +159,23 @@ def show_page(username):
                 top_10_providers_tidy = top_10_providers_tidy[top_10_providers_tidy["Mes"] != "Total"]
                 st.bar_chart(top_10_providers_tidy, x="Mes", y="Neto", color="Empresa", stack=False)
         else:
-            st.warning("No hay datos disponibles para la Razón Social seleccionada.")
+            st.warning("No hay datos disponibles.")
         st.subheader("Detalle Recibidos")
-        st.dataframe(recibidos_historicos[recibidos_historicos['Razon Social'] == selected_razon_social].drop(columns=["Razon Social"]), 
-                     hide_index=True)
+        st.dataframe(recibidos_historicos.drop(columns=["Mes"]), hide_index=True)
 
     # Add a download button for all numeric data
     if st.button("Generar informe en Excel"):
         # Prepare dataframes for download
         ventas_compras_df = comprobantes_historicos[
-            (comprobantes_historicos['Razon Social'] == selected_razon_social) &
-            (comprobantes_historicos['Variable'].isin(['Neto Ventas', 'Neto Compras']))
+            comprobantes_historicos['Variable'].isin(['Neto Ventas', 'Neto Compras'])
         ][['Mes', 'Variable', 'Monto']]
 
         iva_df = comprobantes_historicos[
-            (comprobantes_historicos['Razon Social'] == selected_razon_social) &
-            (comprobantes_historicos['Variable'].isin(['IVA Ventas', 'IVA Compras', 'Saldo IVA']))
+            comprobantes_historicos['Variable'].isin(['IVA Ventas', 'IVA Compras', 'Saldo IVA'])
         ][['Mes', 'Variable', 'Monto']]
 
-        clientes_df = ventas_por_empresa_cliente[
-            ventas_por_empresa_cliente['Razon Social'] == selected_razon_social
-        ][['Empresa', 'Mes', 'Neto']]
-
-        proveedores_df = compras_por_empresa_proveedor[
-            compras_por_empresa_proveedor['Razon Social'] == selected_razon_social
-        ][['Empresa', 'Mes', 'Neto']]
+        clientes_df = ventas_por_empresa_cliente[['Empresa', 'Mes', 'Neto']]
+        proveedores_df = compras_por_empresa_proveedor[['Empresa', 'Mes', 'Neto']]
 
         # Generate Excel file
         excel_data = download_excel(
