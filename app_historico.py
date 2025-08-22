@@ -60,7 +60,7 @@ def show_page():
             set(recibidos_df['Mes'].unique()).union(emitidos_df['Mes'].unique()),
             reverse=True
         )
-
+        all_meses = ["(Todos)"] + all_meses
 
         # EMPRESA filter (ascending)
         all_empresas = sorted(
@@ -69,7 +69,8 @@ def show_page():
         
         # Apply filters
         def filter_df(df):
-            df = df[df['Mes'] == selected_mes]
+            if selected_mes != "(Todos)":
+                df = df[df['Mes'] == selected_mes]
             if selected_empresa != "(Todos)":
                 df = df[df['Empresa'] == selected_empresa]
             return df
